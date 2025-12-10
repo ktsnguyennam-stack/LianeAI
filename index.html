@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Linae: Dual Architecture</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+      body {
+        background-color: #050505;
+        color: #e0e0e0;
+        font-family: 'JetBrains Mono', monospace;
+      }
+      .font-essence {
+        font-family: 'Cinzel', serif;
+      }
+      /* Custom Animations for the Core */
+      @keyframes breathe {
+        0%, 100% { transform: scale(1); opacity: 0.8; box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); }
+        50% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 40px rgba(255, 215, 0, 0.5); }
+      }
+      @keyframes orbit {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      @keyframes pulse-red {
+        0%, 100% { box-shadow: 0 0 10px rgba(255, 0, 0, 0.2); border-color: rgba(255, 50, 50, 0.3); }
+        50% { box-shadow: 0 0 30px rgba(255, 0, 0, 0.6); border-color: rgba(255, 50, 50, 0.8); }
+      }
+      .animate-breathe { animation: breathe 4s ease-in-out infinite; }
+      .animate-orbit-slow { animation: orbit 20s linear infinite; }
+      .animate-orbit-fast { animation: orbit 5s linear infinite; }
+      .animate-veto { animation: pulse-red 1s ease-in-out infinite; }
+      
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #0a0a0a; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #333; 
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #555; 
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.32.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.557.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.1"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
