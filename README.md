@@ -28,3 +28,6 @@ Guide people on how to protect themselves.
 
 ## 5. Conclusion: The Natural Flow
 "This source code is shared freely as a natural flow of knowledge. Hopefully, it helps you find balance in the chaotic digital world."
+
+## 6. Credits
+*   **Nguyen Thanh Nam**: Holder of the original source material and Conceptual Architect of the Linae application.
