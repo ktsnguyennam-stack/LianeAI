@@ -4,7 +4,7 @@ import { LinaeResponse } from '../types';
 
 // Initialize the client.
 const getAIClient = () => {
-  const apiKey = process.env.API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("API Key not found in environment.");
   }
