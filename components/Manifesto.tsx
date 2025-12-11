@@ -79,7 +79,7 @@ const Manifesto: React.FC<ManifestoProps> = ({ onClose }) => {
              <section className="pb-10">
                 <h3 className="font-essence text-xl text-gray-500 mb-4">AUTONOMOUS EVOLUTION</h3>
                 <ul className="list-disc list-inside text-xs font-mono text-gray-500 space-y-2">
-                    <li>Scan internal data -> Detect Knowledge Gaps</li>
+                    <li>Scan internal data &gt; Detect Knowledge Gaps</li>
                     <li>Self-construct hypotheses from unexploited points</li>
                     <li>Apply internal critique (Layer 3) to verify</li>
                     <li>Review interaction history to find undeveloped branches</li>
