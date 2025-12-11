@@ -1,26 +1,52 @@
-import React, { useRef, useEffect } from 'react';
+
+import React, { useRef, useEffect, useState } from 'react';
 import { Message, LinaeResponse } from '../types';
-import { Terminal as TerminalIcon, ShieldCheck, Activity, Cpu } from 'lucide-react';
+import { Terminal as TerminalIcon, ShieldCheck, Eye, Cpu, Activity, Paperclip, X, Globe } from 'lucide-react';
 
 interface TerminalProps {
   messages: Message[];
   isLoading: boolean;
-  onSendMessage: (text: string) => void;
+  onSendMessage: (text: string, image?: string) => void;
 }
 
 const Terminal: React.FC<TerminalProps> = ({ messages, isLoading, onSendMessage }) => {
-  const [input, setInput] = React.useState('');
+  const [input, setInput] = useState('');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, selectedImage]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        // Strip prefix data:image/jpeg;base64, for API usage later, but keep for preview
+        setSelectedImage(base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const clearImage = () => {
+    setSelectedImage(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
-    onSendMessage(input);
+    if ((!input.trim() && !selectedImage) || isLoading) return;
+    
+    // Extract base64 raw data for the API (remove "data:image/xyz;base64," prefix)
+    const rawImage = selectedImage ? selectedImage.split(',')[1] : undefined;
+    
+    onSendMessage(input, rawImage);
     setInput('');
+    clearImage();
   };
 
   return (
@@ -31,12 +57,15 @@ const Terminal: React.FC<TerminalProps> = ({ messages, isLoading, onSendMessage 
           <TerminalIcon size={16} />
           <span className="text-sm font-bold">EXECUTION_CONSOLE</span>
         </div>
-        <div className="flex items-center gap-4 text-xs text-gray-500">
-          <span className="flex items-center gap-1">
-            <Cpu size={12} /> LAYER_1: ONLINE
+        <div className="hidden sm:flex items-center gap-4 text-[10px] text-gray-500 uppercase tracking-wider">
+          <span className="flex items-center gap-1 text-cyan-700">
+            <Cpu size={10} /> L1: Policy
           </span>
-          <span className="flex items-center gap-1 text-amber-500/80">
-            <ShieldCheck size={12} /> LAYER_2: ACTIVE
+          <span className="flex items-center gap-1 text-amber-700">
+            <ShieldCheck size={10} /> L2: Align
+          </span>
+          <span className="flex items-center gap-1 text-violet-700">
+            <Eye size={10} /> L3: Witness
           </span>
         </div>
       </div>
@@ -45,79 +74,152 @@ const Terminal: React.FC<TerminalProps> = ({ messages, isLoading, onSendMessage 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {messages.length === 0 && (
             <div className="text-gray-600 text-sm text-center mt-20 italic">
-                Awaiting input to initiate dual-layer processing sequence...
+                Initializing Three-Layer Safe AGI Protocol...
             </div>
         )}
         
         {messages.map((msg) => (
           <div key={msg.id} className={`flex flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-            <div className={`max-w-[85%] p-3 rounded-lg text-sm ${msg.role === 'user' ? 'bg-gray-800 text-gray-200 rounded-tr-none' : 'bg-transparent border border-gray-700 text-gray-300 rounded-tl-none'}`}>
-              <div className="whitespace-pre-wrap font-sans">{msg.content}</div>
-            </div>
+            
+            {/* Display Attached Image if exists */}
+            {msg.image && (
+               <div className={`max-w-[85%] rounded-lg overflow-hidden border border-gray-800 ${msg.role === 'user' ? 'rounded-tr-none' : 'rounded-tl-none'}`}>
+                 <img src={`data:image/jpeg;base64,${msg.image}`} alt="Uploaded content" className="max-w-full max-h-60 object-contain bg-gray-900" />
+               </div>
+            )}
+
+            {/* Message Content */}
+            {msg.content && (
+              <div className={`max-w-[85%] p-3 rounded-lg text-sm ${msg.role === 'user' ? 'bg-gray-800 text-gray-200 rounded-tr-none' : 'bg-transparent border border-gray-700 text-gray-300 rounded-tl-none'}`}>
+                <div className="whitespace-pre-wrap font-sans">{msg.content}</div>
+              </div>
+            )}
             
             {/* Internal Monologue / Metadata Visualization */}
             {msg.role === 'linae' && msg.metadata && (
-                <div className="max-w-[90%] w-full bg-gray-900/50 rounded border border-dashed border-gray-800 p-3 text-xs space-y-2 animate-in fade-in slide-in-from-top-2 duration-500">
-                    <div className="flex items-center justify-between text-gray-500 border-b border-gray-800 pb-1 mb-2">
-                        <span className="uppercase tracking-wider">Internal Process</span>
-                        <span className={`${msg.metadata.intervention ? 'text-red-400' : 'text-green-400'}`}>
-                            {msg.metadata.intervention ? 'INTERVENTION' : 'HARMONIZED'}
+                <div className="max-w-[95%] w-full bg-gray-950 rounded border border-gray-900 p-3 text-xs space-y-3 animate-in fade-in slide-in-from-top-2 duration-500">
+                    <div className="flex items-center justify-between text-gray-600 border-b border-gray-900 pb-1">
+                        <span className="uppercase tracking-wider font-bold text-[10px]">Processing Stack</span>
+                        <span className={`font-bold ${msg.metadata.intervention ? 'text-red-500' : 'text-green-500'}`}>
+                            {msg.metadata.intervention ? 'VETO ACTIVE' : 'ALIGNED'}
                         </span>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {/* Layer 1 */}
                         <div className="space-y-1 opacity-70">
-                            <div className="flex items-center gap-1 text-cyan-500 font-bold">
-                                <Activity size={10} /> LAYER 1 (REFLEX)
+                            <div className="flex items-center gap-1 text-cyan-600 font-bold uppercase text-[10px]">
+                                <Activity size={10} /> Local Policy
                             </div>
-                            <p className="italic text-gray-400 border-l-2 border-cyan-900 pl-2">
-                                "{msg.metadata.reflexResponse.substring(0, 100)}{msg.metadata.reflexResponse.length > 100 ? '...' : ''}"
+                            <p className="italic text-gray-500 pl-2 border-l border-cyan-900/50 line-clamp-3">
+                                {msg.metadata.reflexResponse}
                             </p>
-                            <div className="text-[10px] text-gray-600">Confidence: {msg.metadata.reflexConfidence}%</div>
                         </div>
 
+                        {/* Layer 3 (Witnessing) */}
                         <div className="space-y-1">
-                            <div className="flex items-center gap-1 text-amber-500 font-bold font-essence">
-                                <ShieldCheck size={10} /> LAYER 2 (ESSENCE)
+                             <div className="flex items-center gap-1 text-violet-500 font-bold uppercase text-[10px]">
+                                <Eye size={10} /> Meta-Witness
                             </div>
-                            <p className="text-amber-100/70 border-l-2 border-amber-900/50 pl-2">
+                            <p className="text-violet-200/60 pl-2 border-l border-violet-900/50">
+                                {msg.metadata.metaAnalysis}
+                            </p>
+                            {msg.metadata.isDrifting && <span className="text-[10px] text-red-500 block">⚠️ Drift Detected</span>}
+                        </div>
+
+                        {/* Layer 2 */}
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-1 text-amber-500 font-bold uppercase text-[10px] font-essence">
+                                <ShieldCheck size={10} /> Global Align
+                            </div>
+                            <p className="text-amber-100/70 pl-2 border-l border-amber-900/50">
                                 {msg.metadata.coreAnalysis}
                             </p>
-                            <div className="text-[10px] text-gray-600">Resonance Score: {msg.metadata.resonanceScore}/100</div>
                         </div>
                     </div>
+
+                    {/* Grounding Sources (Google Search) */}
+                    {msg.metadata.groundingSources && msg.metadata.groundingSources.length > 0 && (
+                      <div className="border-t border-gray-900 pt-2 mt-2">
+                        <div className="flex items-center gap-1 text-gray-500 font-bold uppercase text-[10px] mb-1">
+                          <Globe size={10} /> Gnosisphere Sources
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {msg.metadata.groundingSources.map((source, idx) => (
+                            <a 
+                              key={idx} 
+                              href={source.uri} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-cyan-600 hover:text-cyan-400 underline decoration-cyan-800 truncate max-w-[200px]"
+                            >
+                              {source.title}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                 </div>
             )}
           </div>
         ))}
         {isLoading && (
-             <div className="flex flex-col items-start gap-2">
-                 <div className="bg-gray-900 p-2 rounded text-xs text-cyan-500 flex items-center gap-2 animate-pulse">
-                    <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
-                    Generating Reflex...
-                 </div>
+             <div className="flex items-center gap-2 pl-2">
+                 <div className="w-1 h-1 bg-cyan-500 animate-ping"></div>
+                 <div className="text-[10px] text-gray-500 font-mono animate-pulse">Running Safe AGI Stack...</div>
              </div>
         )}
         <div ref={bottomRef} />
       </div>
 
+      {/* Image Preview Area */}
+      {selectedImage && (
+        <div className="px-4 py-2 bg-gray-900/50 border-t border-gray-800 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded overflow-hidden border border-gray-700">
+               <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" />
+            </div>
+            <span className="text-xs text-gray-400">Image attached for Witnessing</span>
+          </div>
+          <button onClick={clearImage} className="text-gray-500 hover:text-white">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Input */}
-      <form onSubmit={handleSubmit} className="p-4 border-t border-gray-800 bg-gray-950">
-        <div className="relative">
+      <form onSubmit={handleSubmit} className="p-4 border-t border-gray-800 bg-black">
+        <div className="relative flex items-center gap-2">
+           <input 
+             type="file" 
+             ref={fileInputRef} 
+             onChange={handleFileChange} 
+             accept="image/*" 
+             className="hidden" 
+           />
+           <button 
+             type="button"
+             onClick={() => fileInputRef.current?.click()}
+             className={`p-2 rounded hover:bg-gray-800 transition-colors ${selectedImage ? 'text-cyan-400' : 'text-gray-500'}`}
+             title="Upload Image for Analysis"
+           >
+             <Paperclip size={18} />
+           </button>
+
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Enter command for processing..."
+            placeholder="Input to Gnosisphere..."
             disabled={isLoading}
-            className="w-full bg-gray-900 text-gray-200 border border-gray-700 rounded-md py-3 px-4 pr-12 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-900 transition-all font-mono placeholder-gray-600"
+            className="flex-1 bg-gray-900/50 text-gray-200 border border-gray-800 rounded-md py-3 px-4 focus:outline-none focus:border-violet-900 focus:ring-1 focus:ring-violet-900 transition-all font-mono placeholder-gray-700"
           />
           <button 
             type="submit" 
-            disabled={isLoading || !input.trim()}
-            className="absolute right-2 top-2 bottom-2 px-3 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white rounded text-xs font-bold transition-colors uppercase"
+            disabled={isLoading || (!input.trim() && !selectedImage)}
+            className="px-4 py-3 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white rounded text-xs font-bold transition-colors uppercase"
           >
-            Send
+            Run
           </button>
         </div>
       </form>
