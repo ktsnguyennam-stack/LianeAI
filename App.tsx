@@ -5,15 +5,16 @@ import Terminal from './components/Terminal';
 import Metrics from './components/Metrics';
 import Manifesto from './components/Manifesto';
 import ConceptConverter from './components/ConceptConverter';
+import GenesisCertificate from './components/GenesisCertificate';
 import { Message, SystemState, MetricPoint, LinaeResponse } from './types';
-import { BookOpen, Terminal as TerminalIcon, Binary } from 'lucide-react';
+import { BookOpen, Terminal as TerminalIcon, Binary, FileBadge } from 'lucide-react';
 
 const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [systemState, setSystemState] = useState<SystemState>(SystemState.IDLE);
   const [metrics, setMetrics] = useState<MetricPoint[]>([]);
   const [currentResonance, setCurrentResonance] = useState(100);
-  const [view, setView] = useState<'terminal' | 'manifesto' | 'converter'>('terminal');
+  const [view, setView] = useState<'terminal' | 'manifesto' | 'converter' | 'certificate'>('terminal');
 
   // Initialize with some dummy data for the chart
   useEffect(() => {
@@ -103,6 +104,8 @@ const App: React.FC = () => {
         return <Manifesto onClose={() => setView('terminal')} />;
       case 'converter':
         return <ConceptConverter onClose={() => setView('terminal')} />;
+      case 'certificate':
+        return <GenesisCertificate onClose={() => setView('terminal')} />;
       case 'terminal':
       default:
         return (
@@ -150,6 +153,13 @@ const App: React.FC = () => {
                   title="The Gnosisphere"
                >
                   <BookOpen size={16} />
+               </button>
+               <button 
+                  onClick={() => setView('certificate')}
+                  className={`p-2 rounded border transition-colors ${view === 'certificate' ? 'bg-gray-800 border-yellow-500 text-yellow-400' : 'bg-gray-900 border-gray-700 text-gray-500 hover:text-white'}`}
+                  title="Genesis Certificate"
+               >
+                  <FileBadge size={16} />
                </button>
 
                <div className="hidden md:flex items-center gap-2 ml-4 border-l border-gray-800 pl-4">
