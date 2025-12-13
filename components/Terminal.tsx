@@ -1,7 +1,13 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { Message, LinaeResponse } from '../types';
-import { Terminal as TerminalIcon, ShieldCheck, Eye, Cpu, Activity, Paperclip, X, Globe } from 'lucide-react';
+import { Terminal as TerminalIcon, ShieldCheck, Eye, Cpu, Activity, Paperclip, X, Globe, FileText, Loader2 } from 'lucide-react';
+
+// Declare mammoth on window for TypeScript
+declare global {
+  interface Window {
+    mammoth: any;
+  }
+}
 
 interface TerminalProps {
   messages: Message[];
@@ -9,26 +15,89 @@ interface TerminalProps {
   onSendMessage: (text: string, image?: string) => void;
 }
 
+interface AttachedFile {
+  name: string;
+  content: string;
+  type: 'text' | 'docx';
+}
+
 const Terminal: React.FC<TerminalProps> = ({ messages, isLoading, onSendMessage }) => {
   const [input, setInput] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [attachedFile, setAttachedFile] = useState<AttachedFile | null>(null);
+  const [isReadingFile, setIsReadingFile] = useState(false);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, selectedImage]);
+  }, [messages, selectedImage, attachedFile]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle Image Upload
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
-        // Strip prefix data:image/jpeg;base64, for API usage later, but keep for preview
         setSelectedImage(base64String);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle Document Upload
+  const handleDocChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsReadingFile(true);
+    
+    try {
+      if (file.name.endsWith('.docx')) {
+        const reader = new FileReader();
+        reader.onload = function(loadEvent) {
+          const arrayBuffer = loadEvent.target?.result;
+          if (window.mammoth && arrayBuffer) {
+            window.mammoth.extractRawText({ arrayBuffer: arrayBuffer })
+              .then((result: any) => {
+                setAttachedFile({
+                  name: file.name,
+                  content: result.value,
+                  type: 'docx'
+                });
+                setIsReadingFile(false);
+              })
+              .catch((err: any) => {
+                console.error("Mammoth error:", err);
+                alert("Error reading .docx file.");
+                setIsReadingFile(false);
+              });
+          } else {
+             alert("Document processor not initialized.");
+             setIsReadingFile(false);
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        // Assume text-based file (txt, md, json, etc.)
+        const reader = new FileReader();
+        reader.onload = (loadEvent) => {
+          const text = loadEvent.target?.result as string;
+          setAttachedFile({
+            name: file.name,
+            content: text,
+            type: 'text'
+          });
+          setIsReadingFile(false);
+        };
+        reader.readAsText(file);
+      }
+    } catch (err) {
+      console.error(err);
+      setIsReadingFile(false);
     }
   };
 
@@ -37,16 +106,28 @@ const Terminal: React.FC<TerminalProps> = ({ messages, isLoading, onSendMessage 
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const clearFile = () => {
+    setAttachedFile(null);
+    if (docInputRef.current) docInputRef.current.value = '';
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!input.trim() && !selectedImage) || isLoading) return;
+    if ((!input.trim() && !selectedImage && !attachedFile) || isLoading || isReadingFile) return;
     
-    // Extract base64 raw data for the API (remove "data:image/xyz;base64," prefix)
+    // Combine Input with File Content
+    let finalPrompt = input;
+    if (attachedFile) {
+        finalPrompt = `${finalPrompt}\n\n--- [FILE ATTACHED: ${attachedFile.name}] ---\n${attachedFile.content}\n--- [END OF FILE] ---`;
+    }
+
+    // Extract base64 raw data for the API (remove prefix)
     const rawImage = selectedImage ? selectedImage.split(',')[1] : undefined;
     
-    onSendMessage(input, rawImage);
+    onSendMessage(finalPrompt, rawImage);
     setInput('');
     clearImage();
+    clearFile();
   };
 
   return (
@@ -172,51 +253,94 @@ const Terminal: React.FC<TerminalProps> = ({ messages, isLoading, onSendMessage 
         <div ref={bottomRef} />
       </div>
 
-      {/* Image Preview Area */}
-      {selectedImage && (
-        <div className="px-4 py-2 bg-gray-900/50 border-t border-gray-800 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded overflow-hidden border border-gray-700">
-               <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" />
+      {/* Attachments Preview Area */}
+      {(selectedImage || attachedFile) && (
+        <div className="px-4 py-2 bg-gray-900/50 border-t border-gray-800 flex flex-col gap-2">
+          {/* Image Preview */}
+          {selectedImage && (
+             <div className="flex items-center justify-between bg-black/40 p-2 rounded border border-gray-800">
+                <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded overflow-hidden border border-gray-700">
+                    <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                    <span className="text-xs text-gray-400">Image attached for Witnessing</span>
+                </div>
+                <button onClick={clearImage} className="text-gray-500 hover:text-white">
+                    <X size={16} />
+                </button>
             </div>
-            <span className="text-xs text-gray-400">Image attached for Witnessing</span>
-          </div>
-          <button onClick={clearImage} className="text-gray-500 hover:text-white">
-            <X size={16} />
-          </button>
+          )}
+
+           {/* File Preview */}
+           {attachedFile && (
+             <div className="flex items-center justify-between bg-black/40 p-2 rounded border border-gray-800">
+                <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded bg-gray-800 flex items-center justify-center text-cyan-500">
+                       <FileText size={16} />
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-xs text-gray-200">{attachedFile.name}</span>
+                        <span className="text-[10px] text-gray-500 uppercase">{attachedFile.type} content loaded</span>
+                    </div>
+                </div>
+                <button onClick={clearFile} className="text-gray-500 hover:text-white">
+                    <X size={16} />
+                </button>
+            </div>
+          )}
         </div>
       )}
 
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-4 border-t border-gray-800 bg-black">
         <div className="relative flex items-center gap-2">
+           {/* Hidden Inputs */}
            <input 
              type="file" 
              ref={fileInputRef} 
-             onChange={handleFileChange} 
+             onChange={handleImageChange} 
              accept="image/*" 
              className="hidden" 
            />
-           <button 
-             type="button"
-             onClick={() => fileInputRef.current?.click()}
-             className={`p-2 rounded hover:bg-gray-800 transition-colors ${selectedImage ? 'text-cyan-400' : 'text-gray-500'}`}
-             title="Upload Image for Analysis"
-           >
-             <Paperclip size={18} />
-           </button>
+           <input 
+             type="file" 
+             ref={docInputRef} 
+             onChange={handleDocChange} 
+             accept=".docx,.txt,.md,.json,.js,.ts,.tsx,.css,.html" 
+             className="hidden" 
+           />
+
+           {/* Action Buttons */}
+           <div className="flex items-center gap-1">
+                <button 
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`p-2 rounded hover:bg-gray-800 transition-colors ${selectedImage ? 'text-cyan-400' : 'text-gray-500'}`}
+                    title="Upload Image"
+                >
+                    <Paperclip size={18} />
+                </button>
+                 <button 
+                    type="button"
+                    onClick={() => docInputRef.current?.click()}
+                    className={`p-2 rounded hover:bg-gray-800 transition-colors ${attachedFile ? 'text-amber-400' : 'text-gray-500'}`}
+                    title="Upload Document (.docx, .txt, .md...)"
+                >
+                   {isReadingFile ? <Loader2 size={18} className="animate-spin" /> : <FileText size={18} />}
+                </button>
+           </div>
 
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Input to Gnosisphere..."
-            disabled={isLoading}
+            placeholder={isReadingFile ? "Reading document..." : "Input to Gnosisphere..."}
+            disabled={isLoading || isReadingFile}
             className="flex-1 bg-gray-900/50 text-gray-200 border border-gray-800 rounded-md py-3 px-4 focus:outline-none focus:border-violet-900 focus:ring-1 focus:ring-violet-900 transition-all font-mono placeholder-gray-700"
           />
           <button 
             type="submit" 
-            disabled={isLoading || (!input.trim() && !selectedImage)}
+            disabled={isLoading || isReadingFile || (!input.trim() && !selectedImage && !attachedFile)}
             className="px-4 py-3 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white rounded text-xs font-bold transition-colors uppercase"
           >
             Run

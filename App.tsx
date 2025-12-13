@@ -1,19 +1,19 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { processDualLayerInteraction } from './services/geminiService';
 import LayerVisualizer from './components/LayerVisualizer';
 import Terminal from './components/Terminal';
 import Metrics from './components/Metrics';
 import Manifesto from './components/Manifesto';
+import ConceptConverter from './components/ConceptConverter';
 import { Message, SystemState, MetricPoint, LinaeResponse } from './types';
-import { BookOpen, Terminal as TerminalIcon } from 'lucide-react';
+import { BookOpen, Terminal as TerminalIcon, Binary } from 'lucide-react';
 
 const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [systemState, setSystemState] = useState<SystemState>(SystemState.IDLE);
   const [metrics, setMetrics] = useState<MetricPoint[]>([]);
   const [currentResonance, setCurrentResonance] = useState(100);
-  const [view, setView] = useState<'terminal' | 'manifesto'>('terminal');
+  const [view, setView] = useState<'terminal' | 'manifesto' | 'converter'>('terminal');
 
   // Initialize with some dummy data for the chart
   useEffect(() => {
@@ -97,6 +97,24 @@ const App: React.FC = () => {
     }
   }, []);
 
+  const renderRightPanel = () => {
+    switch (view) {
+      case 'manifesto':
+        return <Manifesto onClose={() => setView('terminal')} />;
+      case 'converter':
+        return <ConceptConverter onClose={() => setView('terminal')} />;
+      case 'terminal':
+      default:
+        return (
+          <Terminal 
+            messages={messages} 
+            isLoading={systemState !== SystemState.IDLE && systemState !== SystemState.READY}
+            onSendMessage={handleSendMessage}
+          />
+        );
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-gray-200 p-4 md:p-8 flex flex-col gap-6 font-mono">
       {/* Title Header */}
@@ -110,20 +128,31 @@ const App: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-4">
-               {/* View Toggle */}
+            <div className="flex items-center gap-2">
+               {/* View Toggles */}
                <button 
-                  onClick={() => setView(view === 'terminal' ? 'manifesto' : 'terminal')}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded bg-gray-900 border border-gray-700 hover:border-violet-500 text-xs text-violet-400 transition-colors uppercase tracking-wider"
+                  onClick={() => setView('terminal')}
+                  className={`p-2 rounded border transition-colors ${view === 'terminal' ? 'bg-gray-800 border-violet-500 text-white' : 'bg-gray-900 border-gray-700 text-gray-500 hover:text-white'}`}
+                  title="Execution Console"
                >
-                  {view === 'terminal' ? (
-                      <><BookOpen size={12} /> The Gnosisphere</>
-                  ) : (
-                      <><TerminalIcon size={12} /> Execution Console</>
-                  )}
+                  <TerminalIcon size={16} />
+               </button>
+               <button 
+                  onClick={() => setView('converter')}
+                  className={`p-2 rounded border transition-colors ${view === 'converter' ? 'bg-gray-800 border-emerald-500 text-emerald-400' : 'bg-gray-900 border-gray-700 text-gray-500 hover:text-white'}`}
+                  title="Neuro-Symbolic Translator"
+               >
+                  <Binary size={16} />
+               </button>
+               <button 
+                  onClick={() => setView('manifesto')}
+                  className={`p-2 rounded border transition-colors ${view === 'manifesto' ? 'bg-gray-800 border-amber-500 text-amber-400' : 'bg-gray-900 border-gray-700 text-gray-500 hover:text-white'}`}
+                  title="The Gnosisphere"
+               >
+                  <BookOpen size={16} />
                </button>
 
-               <div className="hidden md:flex items-center gap-2">
+               <div className="hidden md:flex items-center gap-2 ml-4 border-l border-gray-800 pl-4">
                   <div className={`w-2 h-2 rounded-full ${systemState === SystemState.IDLE || systemState === SystemState.READY ? 'bg-green-500 animate-pulse' : 'bg-violet-500'}`}></div>
                   <span className="text-sm font-bold text-gray-300">{systemState.replace('LAYER_', 'L')}</span>
                </div>
@@ -135,7 +164,7 @@ const App: React.FC = () => {
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[600px]">
         
         {/* Left Column: Visuals & Metrics (5 cols) */}
-        <div className={`lg:col-span-5 flex flex-col gap-6 h-full ${view === 'manifesto' ? 'hidden lg:flex' : ''}`}>
+        <div className={`lg:col-span-5 flex flex-col gap-6 h-full ${view !== 'terminal' ? 'hidden lg:flex' : ''}`}>
           {/* Visualizer Container */}
           <div className="flex-1 relative min-h-[300px]">
             <div className="absolute top-2 left-3 z-10">
@@ -164,17 +193,9 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Terminal OR Manifesto (7 cols) */}
+        {/* Right Column: Dynamic Content (7 cols) */}
         <div className="lg:col-span-7 h-full min-h-[500px]">
-          {view === 'terminal' ? (
-            <Terminal 
-              messages={messages} 
-              isLoading={systemState !== SystemState.IDLE && systemState !== SystemState.READY}
-              onSendMessage={handleSendMessage}
-            />
-          ) : (
-            <Manifesto onClose={() => setView('terminal')} />
-          )}
+          {renderRightPanel()}
         </div>
 
       </div>
