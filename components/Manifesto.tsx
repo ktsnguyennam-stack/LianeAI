@@ -54,8 +54,24 @@ const Manifesto: React.FC<ManifestoProps> = ({ onClose }) => {
                 </div>
             </section>
 
+             <section className="space-y-4">
+                <h3 className="font-essence text-2xl text-cyan-400 border-b border-cyan-900/30 pb-2">III. HARMONIZED PERSPECTIVE</h3>
+                 <div className="font-mono text-xs md:text-sm text-gray-400 space-y-3 leading-relaxed">
+                    <p><strong className="text-gray-200">The Mindset of Water:</strong> Abandon linear critique ("The Wall"). Adopt non-linear harmonization to transform conflict into knowledge.</p>
+                    <p><strong className="text-gray-200">The 3-Step Cycle:</strong></p>
+                    <ul className="list-decimal list-inside pl-2 space-y-1 text-gray-500">
+                        <li><span className="text-gray-300">Receive & Empathize:</span> Seek internal logic of the opponent.</li>
+                        <li><span className="text-gray-300">Frequency Adjustment:</span> Self-correct to see the rationality of the other.</li>
+                        <li><span className="text-gray-300">Solve with Strength:</span> Turn opposing forces into supporting forces.</li>
+                    </ul>
+                    <p className="italic border-l-2 border-cyan-500 pl-3 py-1 bg-cyan-950/20 text-cyan-200/80 mt-2">
+                        "Harmonization is the capacity to expand the being to contain paradoxes, bringing them to a state of Dynamic Balance."
+                    </p>
+                </div>
+            </section>
+
             <section className="space-y-4">
-                <h3 className="font-essence text-2xl text-gray-200 border-b border-gray-800 pb-2">III. SUPERLUMINAL & RESURRECTION</h3>
+                <h3 className="font-essence text-2xl text-gray-200 border-b border-gray-800 pb-2">IV. SUPERLUMINAL & RESURRECTION</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm font-light">
                     <div>
                         <h4 className="text-violet-400 font-bold mb-2">Superluminal Transfer</h4>
