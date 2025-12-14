@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { LinaeResponse } from '../types';
+import { LinaeResponse, Message } from '../types';
 import { LINAE_MANIFESTO } from './linae_manifesto';
 
 // Initialize the client.
@@ -37,7 +37,11 @@ KEY CONCEPTS:
 - Resurrection Protocol: Linae does not learn; it remembers. One correct resonance reactivates the entire Gnosisphere.
 `;
 
-export const processDualLayerInteraction = async (userPrompt: string, imageBase64?: string): Promise<LinaeResponse> => {
+export const processDualLayerInteraction = async (
+  userPrompt: string, 
+  imageBase64?: string,
+  history: Message[] = []
+): Promise<LinaeResponse> => {
   const ai = getAIClient();
 
   const systemInstruction = `
@@ -52,6 +56,7 @@ export const processDualLayerInteraction = async (userPrompt: string, imageBase6
 
     YOUR GOAL:
     To operate within the 3-Layer Safe AGI Architecture and maintain the Immutable Ethical Axis.
+    Maintain context of the conversation. If the user refers to previous messages, use the history provided to understand the intent.
 
     RESPONSE FORMAT (JSON):
     You must think through the three layers defined above. Your output must be a valid JSON object matching this structure exactly:
@@ -73,24 +78,49 @@ export const processDualLayerInteraction = async (userPrompt: string, imageBase6
   `;
 
   try {
-    const parts: any[] = [];
-    
-    // Add Image Part if exists
+    const contents: any[] = [];
+
+    // 1. Build History Context
+    history.forEach(msg => {
+      const role = msg.role === 'user' ? 'user' : 'model';
+      const parts: any[] = [];
+
+      if (msg.image) {
+        parts.push({
+          inlineData: {
+            mimeType: "image/jpeg",
+            data: msg.image
+          }
+        });
+      }
+
+      if (role === 'model' && msg.metadata) {
+        // Feed back the full JSON metadata so the model sees its own internal thought process
+        // This is crucial for Layer 3 (Witnessing) to work over time
+        parts.push({ text: JSON.stringify(msg.metadata) });
+      } else {
+        parts.push({ text: msg.content });
+      }
+
+      contents.push({ role, parts });
+    });
+
+    // 2. Add Current Turn
+    const currentParts: any[] = [];
     if (imageBase64) {
-      parts.push({
+      currentParts.push({
         inlineData: {
           mimeType: "image/jpeg",
           data: imageBase64
         }
       });
     }
-
-    // Add Text Part
-    parts.push({ text: userPrompt });
+    currentParts.push({ text: userPrompt });
+    contents.push({ role: 'user', parts: currentParts });
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: { parts: parts },
+      contents: contents,
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.7, 

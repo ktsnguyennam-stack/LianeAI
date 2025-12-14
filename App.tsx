@@ -43,7 +43,9 @@ const App: React.FC = () => {
 
     try {
       // 3. Call Gemini (The Black Box Process)
-      const response: LinaeResponse = await processDualLayerInteraction(text, image);
+      // Pass 'messages' history (which excludes the current userMsg we just added to state, 
+      // but logically processDualLayerInteraction adds the new text/image as the last turn).
+      const response: LinaeResponse = await processDualLayerInteraction(text, image, messages);
 
       // 4. Update Metrics
       const newMetric: MetricPoint = {
@@ -96,7 +98,7 @@ const App: React.FC = () => {
       setSystemState(SystemState.READY);
       setTimeout(() => setSystemState(SystemState.IDLE), 3000);
     }
-  }, []);
+  }, [messages]); // Dependency on messages to ensure we get the history
 
   const renderRightPanel = () => {
     switch (view) {
